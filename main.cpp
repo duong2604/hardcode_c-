@@ -3,206 +3,80 @@
 using namespace std;
 
 int n, m;
-map<string, vector<string>> adj;
-map<string, int> h;
-string start, goal;
-vector<pair<string, int>> L;
-map<string, string> parent;
+vector<vector<int>> adj;
+vector<bool> visited;
+vector<int> parent;
+int start, goal;
 
-const int W1 = 16;
-const int W2 = 20;
-const int W3 = 36;
-
-void printSeparator(ofstream &fout)
+void input()
 {
-    int tong = W1 + W2 + W3 + 13;
-    string duong(tong, '-');
-    cout << duong << "\n";
-    fout << duong << "\n";
-}
+    cin >> n >> m;
 
-void printRowData(ofstream &fout,
-                  string col1,
-                  string col2,
-                  string col3)
-{
-    stringstream ss;
-    ss << "| " << left << setw(W1) << col1
-       << "| " << left << setw(W2) << col2
-       << "| " << left << setw(W3) << col3
-       << "|";
-
-    cout << ss.str() << "\n";
-    fout << ss.str() << "\n";
-}
-
-void readInput(const string &filename)
-{
-    ifstream fin(filename);
-    if (!fin)
-    {
-        throw runtime_error("cannot open" + filename);
-    }
-    fin >> n >> m;
-
-    for (int i = 0; i < n; i++)
-    {
-        string node;
-        int val;
-        fin >> node >> val;
-        h[node] = val;
-    }
-    fin.ignore();
+    adj.resize(n + 1);
+    visited.assign(n + 1, false);
+    parent.assign(n + 1, -1);
 
     for (int i = 0; i < m; i++)
     {
-        string x, y;
-        fin >> x >> y;
+        int x, y;
+        cin >> x >> y;
         adj[x].push_back(y);
+        adj[y].push_back(x);
     }
-    fin >> start >> goal;
-    fin.close();
+
+    for (int i = 1; i <= n; i++)
+    {
+        sort(adj[i].begin(), adj[i].end());
+    }
+
+    cin >> start >> goal;
 }
 
-string printListL(vector<pair<string, int>> &L)
-{
-    string res = "";
-    for (int i = 0; i < L.size(); i++)
-    {
-        res += L[i].first + to_string(L[i].second);
-        if (i < L.size() - 1)
-        {
-            res += ",";
-        }
-    }
-    return res;
-}
-
-string printAdjList(vector<string> &adj)
-{
-    if (adj.empty())
-        return "";
-
-    string res = "";
-    for (int i = 0; i < adj.size(); i++)
-    {
-        res += adj[i] + to_string(h[adj[i]]);
-        if (i < adj.size() - 1)
-        {
-            res += ",";
-        }
-    }
-
-    return res;
-}
-
-void insertL(vector<pair<string, int>> &L, string u)
+bool dfs(int u)
 {
 
-    for (int i = 0; i < L.size(); i++)
-    {
-        if (h[u] <= L[i].second)
-        {
-            L.insert(L.begin() + i, {u, h[u]});
-            return;
-        }
-    }
-    L.push_back({u, h[u]});
-}
+    visited[u] = true;
 
-void printPath(ofstream &fout)
-{
-    vector<string> path;
-    string node = goal;
-    while (node != "")
+    if (u == goal)
     {
-        path.push_back(node);
-        node = parent[node];
+        return true;
     }
 
-    reverse(path.begin(), path.end());
-
-    string s = "";
-    for (int i = 0; i < path.size(); i++)
+    for (int &v : adj[u])
     {
-        s += path[i];
-        if (i < path.size() - 1)
+        if (!visited[v])
         {
-            s += "-->";
+            parent[v] = u;
+            if (dfs(v))
+                return true;
         }
     }
-    cout << "Path: " << s << endl;
-    fout << "Path: " << s << endl;
-}
 
-void bestFirstSearch(ofstream &fout)
-{
-
-    printSeparator(fout);
-    printRowData(fout, "Phat trien TT", "Trang thai ke", "Danh sach L");
-    printSeparator(fout);
-
-    insertL(L, start);
-    parent[start] = "";
-
-    printRowData(fout, "", "", printListL(L));
-    printSeparator(fout);
-
-    while (true)
-    {
-        if (L.empty())
-        {
-            printRowData(fout, "Not Found", "", "");
-            printSeparator(fout);
-            cout << "Tim kiem that bai!" << endl;
-            return;
-        }
-
-        auto u = L.front();
-        L.erase(L.begin());
-
-        if (u.first == goal)
-        {
-            printRowData(fout, u.first + to_string(u.second), "TTKT-DUNG", "");
-            printSeparator(fout);
-            printPath(fout);
-
-            return;
-        }
-
-        for (string v : adj[u.first])
-        {
-
-            if (parent.find(v) == parent.end())
-            {
-                parent[v] = u.first;
-            }
-            insertL(L, v);
-        }
-        printRowData(fout, u.first + to_string(u.second), printAdjList(adj[u.first]), printListL(L));
-        printSeparator(fout);
-    }
+    return false;
 }
 
 int main()
 {
+    input();
+    dfs(start);
 
-    try
+    vector<int> path;
+    int cur = goal;
+
+    while (cur != -1)
     {
-        /* code */
-        ofstream fout("output.txt");
-        cout << "=== BEST FIRST SEARCH ===\n\n";
-        fout << "=== BEST FIRST SEARCH ===\n\n";
-        readInput("input.txt");
-        bestFirstSearch(fout);
-
-        fout.close();
-        cout << "\n=> Da ghi ket qua vao file output.txt\n";
+        path.push_back(cur);
+        cur = parent[cur];
     }
-    catch (const std::exception &e)
+
+    reverse(path.begin(), path.end());
+
+    cout << "\n\nPath from " << start << " to " << goal << ":\n";
+    for (int i = 0; i < path.size(); i++)
     {
-        std::cerr << e.what() << '\n';
-        return 1;
+        cout << path[i];
+        if (i != path.size() - 1)
+            cout << " -> ";
     }
 
     return 0;
